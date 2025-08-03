@@ -1,0 +1,6 @@
+# Virtual Environment
+quant_env/
+
+# Python cache
+__pycache__/
+*.pyc
