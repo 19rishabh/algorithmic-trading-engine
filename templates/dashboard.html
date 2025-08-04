@@ -14,6 +14,20 @@
             <h1>Quantitative Trading Strategy Performance</h1>
         </header>
 
+        <div class="filter-container">
+            <form method="POST">
+                <div class="form-group">
+                    <label for="start_date">Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="form-group">
+                    <label for="end_date">End Date:</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <button type="submit" class="filter-btn">Apply Filter</button>
+            </form>
+        </div>
+        
         <div class="kpi-grid">
             <div class="kpi-box"><div class="kpi-title">Final Portfolio Value</div><div class="kpi-value">{{ kpis.final_portfolio_value }}</div></div>
             <div class="kpi-box"><div class="kpi-title">Total Return</div><div class="kpi-value">{{ kpis.total_return }}</div></div>
