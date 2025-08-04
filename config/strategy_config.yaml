@@ -1,0 +1,31 @@
+# --- Data Settings ---
+data_settings:
+  tickers: ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS']
+  start_date: '2015-01-01'
+  end_date: '2024-12-31'  # Using a fixed end date for reproducible results
+  cache_path: 'data/raw_data.pkl' # Path to save downloaded data
+
+# --- Feature & Target Settings ---
+feature_settings:
+  rsi_length: 14
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  bbands_length: 20
+  bbands_std: 2.0
+
+target_settings:
+  # Predict the forward return over the next N days
+  future_period: 1 
+
+# --- Model Settings ---
+model_settings:
+  # Features to use for training the model. We will add more later.
+  features_to_use: ['RSI_14', 'MACDh_12_26_9']
+  test_size: 0.2 # 20% of data for testing
+  model_path: 'models/universal_factor_model.pkl' # Path to save the trained model
+
+# --- Backtest Settings ---
+backtest_settings:
+  initial_capital: 100000.0
+  results_path: 'results/backtest_results.csv'
