@@ -51,3 +51,45 @@ header h1 {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* Add this to the bottom of static/css/style.css */
+.table-container {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.table-header h3 {
+    margin: 0;
+    color: #1c1e21;
+}
+.download-btn {
+    background-color: #e4e6eb;
+    color: #1c1e21;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.download-btn:hover {
+    background-color: #d8dadf;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid #ddd;
+}
+th {
+    background-color: #f0f2f5;
+}

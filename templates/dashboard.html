@@ -42,6 +42,32 @@
                 </div>
             </div>
         </div>
+        <div class="table-container" style="margin-top: 2rem;">
+            <div class="table-header">
+                <h3>Recent Trades</h3>
+                <a href="/download/trade_log" class="download-btn">Download Full Log</a>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Ticker</th>
+                        <th>Signal (Prob. Up)</th>
+                        <th>Daily Return</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades | reverse %}
+                    <tr>
+                        <td>{{ trade.Date }}</td>
+                        <td>{{ trade.Ticker }}</td>
+                        <td>{{ trade.Signal }}</td>
+                        <td>{{ trade.Daily_Return }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>

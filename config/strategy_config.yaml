@@ -28,4 +28,4 @@ model_settings:
 # --- Backtest Settings ---
 backtest_settings:
   initial_capital: 100000.0
-  results_path: 'results/backtest_results.csv'
+  results_dir: 'results/'

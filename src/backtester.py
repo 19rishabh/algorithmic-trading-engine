@@ -4,26 +4,26 @@ from pathlib import Path
 import joblib
 
 class Backtester:
-    """
-    Handles the backtesting of a strategy using a universal model.
-    """
     def __init__(self, config_path: str):
         self.config = self._load_config(config_path)
         self.backtest_settings = self.config['backtest_settings']
         self.model_settings = self.config['model_settings']
         self.initial_capital = self.backtest_settings['initial_capital']
         self.model_path = Path(self.model_settings['model_path'])
-        self.results_path = Path(self.backtest_settings['results_path'])
         
-        # Load the trained universal model
+        # NEW: Define path for the trade log
+        self.results_dir = Path(self.backtest_settings['results_dir'])
+        self.portfolio_results_path = self.results_dir / 'portfolio_results.csv'
+        self.trade_log_path = self.results_dir / 'trade_log.csv'
+        
         try:
             self.model = joblib.load(self.model_path)
             print(f"Successfully loaded model from {self.model_path}")
         except FileNotFoundError:
-            print(f"Error: Model file not found at {self.model_path}. Please train the model first.")
             self.model = None
 
     def _load_config(self, config_path: str) -> dict:
+        # ... (this method is unchanged)
         try:
             with open(config_path, 'r') as file:
                 return yaml.safe_load(file)
@@ -32,56 +32,48 @@ class Backtester:
             return {}
 
     def run_backtest(self, panel_data: pd.DataFrame):
-        """
-        Runs a multi-asset backtest on the panel data.
-        Strategy: On each day, go long on the stock with the highest 'up' probability.
-        """
-        if self.model is None:
-            print("Cannot run backtest without a loaded model.")
+        if self.model is None: # ... (unchanged)
             return None
         
-        print("Running backtest...")
-        
-        # Prepare data for prediction
+        print("Running backtest and generating trade log...")
         ranked_features = [f'{feature}_rank' for feature in self.model_settings['features_to_use']]
-        
-        # Get unique dates from our panel data, sorted
         dates = sorted(panel_data.index.get_level_values('Date').unique())
         
-        # Initialize portfolio
         portfolio_value = self.initial_capital
         portfolio_values = []
-        
+        trade_log = [] # NEW: List to store our trades
+
         for date in dates:
-            # Get data for the current day for all stocks
             daily_data = panel_data.loc[date].copy()
-            
-            # Predict probability of 'up' movement for all stocks today
-            # The model's predict_proba returns [[prob_down, prob_up], ...]
             up_probabilities = self.model.predict_proba(daily_data[ranked_features])[:, 1]
             daily_data['signal'] = up_probabilities
             
-            # --- Strategy Logic ---
-            # Find the stock with the highest predicted 'up' probability
             top_stock = daily_data.sort_values(by='signal', ascending=False).iloc[0]
-            
-            # Simulate holding this one stock for the day
-            # We get the day's return from our target column (fwd_return)
-            # This is a simplified "vectorized" backtest. We assume we invest our
-            # entire portfolio in the top stock for one day.
             daily_return = top_stock[f"fwd_return_{self.config['target_settings']['future_period']}d"]
+            
+            # NEW: Log the trade details
+            trade_log.append({
+                'Date': date,
+                'Ticker': top_stock['Ticker'],
+                'Signal': top_stock['signal'],
+                'Daily_Return': daily_return,
+                'Portfolio_Value_Before': portfolio_value,
+                'Portfolio_Value_After': portfolio_value * (1 + daily_return)
+            })
+
             portfolio_value *= (1 + daily_return)
             portfolio_values.append(portfolio_value)
 
-        # Create results DataFrame
-        results_df = pd.DataFrame({
-            'Date': dates,
-            'Portfolio_Value': portfolio_values
-        }).set_index('Date')
+        # --- Save Results ---
+        self.results_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save results to CSV
-        self.results_path.parent.mkdir(parents=True, exist_ok=True)
-        results_df.to_csv(self.results_path)
-        print(f"Backtest complete. Results saved to {self.results_path}")
+        # Save portfolio history
+        results_df = pd.DataFrame({'Date': dates, 'Portfolio_Value': portfolio_values}).set_index('Date')
+        results_df.to_csv(self.portfolio_results_path)
+        
+        # NEW: Save the full trade log
+        trade_log_df = pd.DataFrame(trade_log).set_index('Date')
+        trade_log_df.to_csv(self.trade_log_path)
 
-        return results_df
+        print(f"Backtest complete. Results saved to {self.results_dir}")
+        return results_df, trade_log_df
