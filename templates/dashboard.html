@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quant Strategy Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Quantitative Trading Strategy Performance</h1>
+        </header>
+
+        <div class="kpi-grid">
+            <div class="kpi-box">
+                <div class="kpi-title">Final Portfolio Value</div>
+                <div class="kpi-value">{{ kpis.final_portfolio_value }}</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-title">Total Return</div>
+                <div class="kpi-value">{{ kpis.total_return }}</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-title">Max Drawdown</div>
+                <div class="kpi-value">{{ kpis.max_drawdown }}</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-title">Sharpe Ratio</div>
+                <div class="kpi-value">{{ kpis.sharpe_ratio }}</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="equityCurveChart"></canvas>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+    <script>
+        // This script block takes the data from Flask and passes it to our chart function
+        // The | tojson filter safely converts our Python dict to a JSON string
+        const chartData = {{ chart_data | tojson }};
+        renderEquityCurve(chartData);
+    </script>
+
+</body>
+</html>
