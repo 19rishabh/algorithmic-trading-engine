@@ -21,17 +21,14 @@ def run_backtest(X_test, y_pred, initial_capital=100000.0):
     for i in range(len(X_test)):
         current_price = X_test.iloc[i]['Close']
         signal = y_pred[i]
-
         if signal == 1 and portfolio['cash'] > 0:
             shares_to_buy = portfolio['cash'] / current_price
             portfolio['stock_shares'] += shares_to_buy
             portfolio['cash'] = 0
-        
         elif signal == 0 and portfolio['stock_shares'] > 0:
             cash_from_sale = portfolio['stock_shares'] * current_price
             portfolio['cash'] += cash_from_sale
             portfolio['stock_shares'] = 0
-
         current_portfolio_value = portfolio['cash'] + (portfolio['stock_shares'] * current_price)
         portfolio_values.append(current_portfolio_value)
 
