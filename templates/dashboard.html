@@ -15,35 +15,44 @@
         </header>
 
         <div class="kpi-grid">
-            <div class="kpi-box">
-                <div class="kpi-title">Final Portfolio Value</div>
-                <div class="kpi-value">{{ kpis.final_portfolio_value }}</div>
-            </div>
-            <div class="kpi-box">
-                <div class="kpi-title">Total Return</div>
-                <div class="kpi-value">{{ kpis.total_return }}</div>
-            </div>
-            <div class="kpi-box">
-                <div class="kpi-title">Max Drawdown</div>
-                <div class="kpi-value">{{ kpis.max_drawdown }}</div>
-            </div>
-            <div class="kpi-box">
-                <div class="kpi-title">Sharpe Ratio</div>
-                <div class="kpi-value">{{ kpis.sharpe_ratio }}</div>
-            </div>
+            <div class="kpi-box"><div class="kpi-title">Final Portfolio Value</div><div class="kpi-value">{{ kpis.final_portfolio_value }}</div></div>
+            <div class="kpi-box"><div class="kpi-title">Total Return</div><div class="kpi-value">{{ kpis.total_return }}</div></div>
+            <div class="kpi-box"><div class="kpi-title">Max Drawdown</div><div class="kpi-value">{{ kpis.max_drawdown }}</div></div>
+            <div class="kpi-box"><div class="kpi-title">Sharpe Ratio</div><div class="kpi-value">{{ kpis.sharpe_ratio }}</div></div>
         </div>
 
         <div class="chart-container">
-            <canvas id="equityCurveChart"></canvas>
+            <h3>Equity Curve</h3>
+            <div class="chart-wrapper" style="height:400px;">
+                <canvas id="equityCurveChart"></canvas>
+            </div>
+        </div>
+
+        <div class="kpi-grid" style="margin-top: 2rem;">
+            <div class="chart-container">
+                <h3>Underwater (Drawdown)</h3>
+                 <div class="chart-wrapper" style="height:300px;">
+                    <canvas id="drawdownChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Daily Returns Distribution</h3>
+                 <div class="chart-wrapper" style="height:300px;">
+                    <canvas id="returnsHistogram"></canvas>
+                </div>
+            </div>
         </div>
     </div>
     
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script>
-        // This script block takes the data from Flask and passes it to our chart function
-        // The | tojson filter safely converts our Python dict to a JSON string
+        // Pass the entire chart_data object from Flask to JavaScript
         const chartData = {{ chart_data | tojson }};
-        renderEquityCurve(chartData);
+        
+        // Call the functions to render each chart
+        renderEquityCurve(chartData.equity_curve);
+        renderDrawdownChart(chartData.drawdown);
+        renderReturnsHistogram(chartData.returns_histogram);
     </script>
 
 </body>
