@@ -11,8 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Stage 4: Copy the rest of the application code into the container
 COPY . .
 
-# Stage 5: Expose the port the app will run on
+# Stage 5: Run the data pipeline to generate the results files
+RUN python main.py
+
+# Stage 6: Expose the port the app will run on
 EXPOSE 8000
 
-# Stage 6: Define the command to run the application
+# Stage 7: Define the command to run the application
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
