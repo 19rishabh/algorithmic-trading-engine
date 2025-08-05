@@ -4,6 +4,26 @@ quant_env/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+
+# --- Generated Project Files ---
+# Ignore the primary data, models, and results folders
+/data/
+/models/
+/results/
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore notebook files outside of the 'notebooks/' directory
+# Below keeps our research notebook but ignores others
+*.ipynb
+!/notebooks/research.ipynb
