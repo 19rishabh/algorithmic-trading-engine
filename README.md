@@ -2,9 +2,6 @@
 
 This project is a complete, end-to-end system for developing, backtesting, and analyzing a quantitative, factor-based stock trading strategy. The system automatically downloads historical stock data, engineers predictive features, trains a universal machine learning model on cross-sectional data, and runs a multi-asset backtest. The results are presented in a dynamic, interactive web dashboard built with Flask and deployed as a containerized application.
 
-## 📸 Live Dashboard Preview
-
-
 ## ✨ Key Features
 
 * **Professional Quantitative Strategy:** Implements a universal factor model, training a single `LightGBM` classifier on normalized, cross-sectional panel data rather than over-fitting to a single stock.
