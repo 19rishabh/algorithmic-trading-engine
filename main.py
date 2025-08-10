@@ -1,13 +1,19 @@
+# Import our custom classes from the 'src' package
 from src.data_handler import DataHandler
 from src.feature_engineer import FeatureEngineer
 from src.model_trainer import ModelTrainer
 from src.backtester import Backtester
 
 def run_pipeline():
+    """
+    Executes the entire data-to-backtest pipeline with the correct, unbiased workflow.
+    """
     print("--- Starting Quant Trading Pipeline ---")
+
     config_path = 'config/strategy_config.yaml'
 
-    # --- Step 1: Data Handling (No change) ---
+    # --- Step 1: Data Handling ---
+    print("\n[Phase 1/5] Data Handling...")
     data_handler = DataHandler(config_path=config_path)
     raw_data = data_handler.fetch_data()
 
@@ -19,7 +25,9 @@ def run_pipeline():
     # --- Step 3: Feature Engineering (Done separately on each set) ---
     print("\n[Phase 3/5] Feature Engineering...")
     feature_engineer = FeatureEngineer(config_path=config_path)
+    # Process training data
     train_featured_data = feature_engineer.add_features(train_raw_data)
+    # Process testing data completely independently
     test_featured_data = feature_engineer.add_features(test_raw_data)
 
     # --- Step 4: Model Training (Only on training data) ---
@@ -34,6 +42,7 @@ def run_pipeline():
     backtester.run_backtest(test_panel_data)
 
     print("\n--- Pipeline Finished Successfully ---")
+
 
 if __name__ == "__main__":
     run_pipeline()
