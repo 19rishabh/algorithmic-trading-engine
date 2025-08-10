@@ -12,7 +12,7 @@ TRADE_LOG_PATH = RESULTS_DIR / 'trade_log.csv'
 
 def calculate_performance_metrics(results_df):
     """Helper function to calculate all KPIs from a results dataframe."""
-    if results_df.empty:
+    if results_df.empty or len(results_df) < 2:
         return {key: "N/A" for key in ['final_portfolio_value', 'total_return', 'max_drawdown', 'sharpe_ratio']}
 
     initial_value = results_df['Portfolio_Value'].iloc[0]
@@ -38,27 +38,28 @@ def dashboard():
         # --- 1. Load the FULL dataset ---
         full_results_df = pd.read_csv(PORTFOLIO_PATH, index_col='Date', parse_dates=True)
         
-        # --- 2. Apply Filters (if any) ---
-        filtered_df = full_results_df.copy() # Start with the full data
+        # --- 2. Determine Date Range ---
         start_date_str = request.form.get('start_date')
         end_date_str = request.form.get('end_date')
-
-        if request.method == 'POST':
-            if start_date_str:
-                filtered_df = filtered_df[filtered_df.index >= pd.to_datetime(start_date_str)]
-            if end_date_str:
-                filtered_df = filtered_df[filtered_df.index <= pd.to_datetime(end_date_str)]
         
-        # --- 3. Calculate everything from the FILTERED data ---
+        # If it's a GET request or the form is empty, use the full range
+        if request.method != 'POST' or not start_date_str:
+            start_date_str = full_results_df.index.min().strftime('%Y-%m-%d')
+        if request.method != 'POST' or not end_date_str:
+            end_date_str = full_results_df.index.max().strftime('%Y-%m-%d')
+
+        # --- 3. Filter the DataFrame based on the determined dates ---
+        filtered_df = full_results_df.loc[start_date_str:end_date_str].copy()
+        
+        # --- 4. Calculate everything from the SINGLE filtered DataFrame ---
         kpis = calculate_performance_metrics(filtered_df)
 
-        # Prepare chart data from the filtered dataframe
-        equity_curve_df = filtered_df.reset_index()
-        equity_curve_df['Date'] = equity_curve_df['Date'].dt.strftime('%Y-%m-%d')
-        
         daily_returns = filtered_df['Portfolio_Value'].pct_change().dropna()
         rolling_max = filtered_df['Portfolio_Value'].cummax()
         daily_drawdown = (filtered_df['Portfolio_Value'] / rolling_max) - 1.0
+        
+        equity_curve_df = filtered_df.reset_index()
+        equity_curve_df['Date'] = equity_curve_df['Date'].dt.strftime('%Y-%m-%d')
         drawdown_df = daily_drawdown.reset_index()
         drawdown_df['Date'] = drawdown_df['Date'].dt.strftime('%Y-%m-%d')
         
@@ -68,10 +69,10 @@ def dashboard():
             'returns_histogram': daily_returns.tolist()
         }
 
-        # Load and prepare recent trades (this part is fine as is)
-        trade_log_df = pd.read_csv(TRADE_LOG_PATH, index_col='Date')
-        recent_trades = trade_log_df.tail(20).reset_index()
-        recent_trades['Date'] = pd.to_datetime(recent_trades['Date']).dt.strftime('%Y-%m-%d')
+        # Load and prepare recent trades (this logic is separate and fine)
+        trade_log_df = pd.read_csv(TRADE_LOG_PATH, index_col='Date', parse_dates=True)
+        recent_trades = trade_log_df.loc[start_date_str:end_date_str].tail(20).reset_index()
+        recent_trades['Date'] = recent_trades['Date'].dt.strftime('%Y-%m-%d')
         recent_trades['Signal'] = recent_trades['Signal'].map('{:.2%}'.format)
         recent_trades['Daily_Return'] = recent_trades['Daily_Return'].map('{:.2%}'.format)
         recent_trades = recent_trades.to_dict('records')
