@@ -16,7 +16,7 @@ class ModelTrainer:
         self.target = self.config['target_settings']['future_period']
         self.target_col = f'fwd_return_{self.target}d'
         self.model_path = Path(self.model_settings['model_path'])
-
+    
     def _load_config(self, config_path: str) -> dict:
         try:
             with open(config_path, 'r') as file:
@@ -25,7 +25,8 @@ class ModelTrainer:
             print(f"Error: Configuration file not found at {config_path}")
             return {}
 
-def prepare_panel_data(self, data_dict: dict) -> pd.DataFrame:
+    
+    def prepare_panel_data(self, data_dict: dict) -> pd.DataFrame:
         """
         Combines data from all tickers into a single panel DataFrame.
         Also normalizes features cross-sectionally (by ranking).
@@ -93,4 +94,5 @@ def prepare_panel_data(self, data_dict: dict) -> pd.DataFrame:
         
         # Return both the model and the data it should be tested on
         return model, test_set_data
+
 
