@@ -44,6 +44,8 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
+# Forcing a fresh build on Railway
     # This block ensures that the run_pipeline() function is called 
     # only when the script is executed directly.
     run_pipeline()
+
