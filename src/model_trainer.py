@@ -42,19 +42,26 @@ class ModelTrainer:
         # For each day, rank stocks based on their feature values.
         # This makes features comparable across different stocks.
         for feature in self.features_to_use:
-            panel_data[f'{feature}_rank'] = panel_data.groupby('Date')[feature].rank(pct=True)
+            panel_data[f'{feature}_rank'] = panel_data.groupby(level='Date')[feature].rank(pct=True)
             
         # Create a binary target variable for classification
         # 1 if future return is positive, 0 otherwise.
         panel_data['target_binary'] = (panel_data[self.target_col] > 0).astype(int)
 
         panel_data.dropna(inplace=True)
+        # Set a MultiIndex for easier time-series and cross-sectional access
+        panel_data.set_index(['Date', 'Ticker'], inplace=True, append=True)
+        panel_data.index = panel_data.index.droplevel(0) # Drop the old integer index
+
         print("Panel data preparation complete.")
         return panel_data
 
     def train_model(self, panel_data: pd.DataFrame):
         """
         Trains a universal LightGBM model on the prepared panel data.
+        
+        Returns:
+            tuple: A tuple containing the trained model and the test set DataFrame.
         """
         print("Starting model training...")
         
@@ -83,4 +90,9 @@ class ModelTrainer:
         joblib.dump(model, self.model_path)
         print(f"Model saved to {self.model_path}")
 
-        return model
+        # --- THIS IS THE CRITICAL CHANGE ---
+        # Get the full data for the test set period
+        test_set_data = panel_data.loc[X_test.index]
+        
+        # Return both the model and the data it should be tested on
+        return model, test_set_data
