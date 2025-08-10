@@ -1,4 +1,3 @@
-# Add 'request' to our Flask import
 from flask import Flask, render_template, json, send_file, request
 import pandas as pd
 import numpy as np
@@ -6,69 +5,70 @@ from pathlib import Path
 
 app = Flask(__name__)
 
+# --- Define paths at the top for clarity ---
 RESULTS_DIR = Path('results/')
 PORTFOLIO_PATH = RESULTS_DIR / 'portfolio_results.csv'
 TRADE_LOG_PATH = RESULTS_DIR / 'trade_log.csv'
 
-# UPDATE: Allow both GET and POST requests
+def calculate_performance_metrics(results_df):
+    """Helper function to calculate all KPIs from a results dataframe."""
+    if results_df.empty:
+        return {key: "N/A" for key in ['final_portfolio_value', 'total_return', 'max_drawdown', 'sharpe_ratio']}
+
+    initial_value = results_df['Portfolio_Value'].iloc[0]
+    final_value = results_df['Portfolio_Value'].iloc[-1]
+    total_return = (final_value - initial_value) / initial_value
+    daily_returns = results_df['Portfolio_Value'].pct_change().dropna()
+    sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() != 0 else 0
+    rolling_max = results_df['Portfolio_Value'].cummax()
+    daily_drawdown = (results_df['Portfolio_Value'] / rolling_max) - 1.0
+    max_drawdown = daily_drawdown.min()
+
+    return {
+        'final_portfolio_value': f"₹{final_value:,.2f}",
+        'total_return': f"{total_return:.2%}",
+        'max_drawdown': f"{max_drawdown:.2%}",
+        'sharpe_ratio': f"{sharpe_ratio:.2f}"
+    }
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    kpis = {}
-    chart_data = {}
-    recent_trades = []
-    
-    # NEW: Default date range
-    start_date_str = None
-    end_date_str = None
-
     try:
-        results_df = pd.read_csv(PORTFOLIO_PATH, index_col='Date', parse_dates=True)
+        # --- 1. Load the FULL dataset ---
+        full_results_df = pd.read_csv(PORTFOLIO_PATH, index_col='Date', parse_dates=True)
         
-        # NEW: Handle form submission for date filtering
+        # --- 2. Apply Filters (if any) ---
+        filtered_df = full_results_df.copy() # Start with the full data
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+
         if request.method == 'POST':
-            start_date_str = request.form.get('start_date')
-            end_date_str = request.form.get('end_date')
-            
-            # Filter the DataFrame based on the provided dates
             if start_date_str:
-                results_df = results_df[results_df.index >= pd.to_datetime(start_date_str)]
+                filtered_df = filtered_df[filtered_df.index >= pd.to_datetime(start_date_str)]
             if end_date_str:
-                results_df = results_df[results_df.index <= pd.to_datetime(end_date_str)]
+                filtered_df = filtered_df[filtered_df.index <= pd.to_datetime(end_date_str)]
         
-        # --- Recalculate everything based on the (potentially filtered) DataFrame ---
-        if not results_df.empty:
-            initial_value = results_df['Portfolio_Value'].iloc[0]
-            final_value = results_df['Portfolio_Value'].iloc[-1]
-            total_return = (final_value - initial_value) / initial_value
-            daily_returns = results_df['Portfolio_Value'].pct_change().dropna()
-            sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() != 0 else 0
-            rolling_max = results_df['Portfolio_Value'].cummax()
-            daily_drawdown = (results_df['Portfolio_Value'] / rolling_max) - 1.0
-            max_drawdown = daily_drawdown.min()
+        # --- 3. Calculate everything from the FILTERED data ---
+        kpis = calculate_performance_metrics(filtered_df)
 
-            kpis = {
-                'final_portfolio_value': f"₹{final_value:,.2f}",
-                'total_return': f"{total_return:.2%}",
-                'max_drawdown': f"{max_drawdown:.2%}",
-                'sharpe_ratio': f"{sharpe_ratio:.2f}"
-            }
+        # Prepare chart data from the filtered dataframe
+        equity_curve_df = filtered_df.reset_index()
+        equity_curve_df['Date'] = equity_curve_df['Date'].dt.strftime('%Y-%m-%d')
+        
+        daily_returns = filtered_df['Portfolio_Value'].pct_change().dropna()
+        rolling_max = filtered_df['Portfolio_Value'].cummax()
+        daily_drawdown = (filtered_df['Portfolio_Value'] / rolling_max) - 1.0
+        drawdown_df = daily_drawdown.reset_index()
+        drawdown_df['Date'] = drawdown_df['Date'].dt.strftime('%Y-%m-%d')
+        
+        chart_data = {
+            'equity_curve': equity_curve_df[['Date', 'Portfolio_Value']].to_dict('records'),
+            'drawdown': drawdown_df.rename(columns={0: 'Drawdown'}).to_dict('records'),
+            'returns_histogram': daily_returns.tolist()
+        }
 
-            equity_curve_df = results_df.reset_index()
-            equity_curve_df['Date'] = equity_curve_df['Date'].dt.strftime('%Y-%m-%d')
-            drawdown_df = daily_drawdown.reset_index()
-            drawdown_df['Date'] = drawdown_df['Date'].dt.strftime('%Y-%m-%d')
-            chart_data = {
-                'equity_curve': equity_curve_df[['Date', 'Portfolio_Value']].to_dict('records'),
-                'drawdown': drawdown_df.rename(columns={0: 'Drawdown'}).to_dict('records'),
-                'returns_histogram': daily_returns.tolist()
-            }
-        else:
-            # Handle case where date range is empty
-            kpis = {key: "N/A" for key in ['final_portfolio_value', 'total_return', 'max_drawdown', 'sharpe_ratio']}
-            chart_data = {'equity_curve': [], 'drawdown': [], 'returns_histogram': []}
-
-
+        # Load and prepare recent trades (this part is fine as is)
         trade_log_df = pd.read_csv(TRADE_LOG_PATH, index_col='Date')
         recent_trades = trade_log_df.tail(20).reset_index()
         recent_trades['Date'] = pd.to_datetime(recent_trades['Date']).dt.strftime('%Y-%m-%d')
@@ -78,9 +78,11 @@ def dashboard():
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        # ... (error handling is the same) ...
+        kpis = {key: "Error" for key in ['final_portfolio_value', 'total_return', 'max_drawdown', 'sharpe_ratio']}
+        chart_data = {'equity_curve': [], 'drawdown': [], 'returns_histogram': []}
+        recent_trades = []
+        start_date_str, end_date_str = None, None
         
-    # Pass date strings back to the template to pre-fill the form
     return render_template('dashboard.html', kpis=kpis, chart_data=chart_data, trades=recent_trades, start_date=start_date_str, end_date=end_date_str)
 
 # ... (download route is unchanged) ...
