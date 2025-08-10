@@ -25,33 +25,30 @@ class ModelTrainer:
             print(f"Error: Configuration file not found at {config_path}")
             return {}
 
-    def prepare_panel_data(self, data_dict: dict) -> pd.DataFrame:
+def prepare_panel_data(self, data_dict: dict) -> pd.DataFrame:
         """
         Combines data from all tickers into a single panel DataFrame.
         Also normalizes features cross-sectionally (by ranking).
         """
         print("Preparing panel data for model training...")
-        # Add a 'Ticker' column to each dataframe before combining
         for ticker, df in data_dict.items():
             df['Ticker'] = ticker
         
-        # Combine all dataframes into one
         panel_data = pd.concat(data_dict.values())
         
-        # --- Cross-sectional Ranking (Normalization) ---
-        # For each day, rank stocks based on their feature values.
-        # This makes features comparable across different stocks.
+        # --- THE FIX: Reset the index to make 'Date' a column ---
+        panel_data.reset_index(inplace=True)
+        
         for feature in self.features_to_use:
-            panel_data[f'{feature}_rank'] = panel_data.groupby(level='Date')[feature].rank(pct=True)
+            # Now we group by the 'Date' COLUMN
+            panel_data[f'{feature}_rank'] = panel_data.groupby('Date')[feature].rank(pct=True)
             
-        # Create a binary target variable for classification
-        # 1 if future return is positive, 0 otherwise.
         panel_data['target_binary'] = (panel_data[self.target_col] > 0).astype(int)
 
         panel_data.dropna(inplace=True)
-        # Set a MultiIndex for easier time-series and cross-sectional access
-        panel_data.set_index(['Date', 'Ticker'], inplace=True, append=True)
-        panel_data.index = panel_data.index.droplevel(0) # Drop the old integer index
+        
+        # Now that 'Date' is a column, this command will work
+        panel_data.set_index(['Date', 'Ticker'], inplace=True)
 
         print("Panel data preparation complete.")
         return panel_data
@@ -96,3 +93,4 @@ class ModelTrainer:
         
         # Return both the model and the data it should be tested on
         return model, test_set_data
+
