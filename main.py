@@ -27,12 +27,18 @@ def run_pipeline():
     print("\n[Phase 3/4] Model Training...")
     model_trainer = ModelTrainer(config_path=config_path)
     panel_data = model_trainer.prepare_panel_data(featured_data)
-    model_trainer.train_model(panel_data)
+    
+    # --- THIS IS THE FIRST CHANGE ---
+    # Capture both the model and the test set that the function now returns
+    model, test_set_data = model_trainer.train_model(panel_data)
 
     # --- Step 4: Backtesting ---
     print("\n[Phase 4/4] Backtesting...")
     backtester = Backtester(config_path=config_path)
-    backtester.run_backtest(panel_data)
+    
+    # --- THIS IS THE SECOND CHANGE ---
+    # Pass ONLY the unseen test data to the backtester
+    backtester.run_backtest(test_set_data)
 
     print("\n--- Pipeline Finished Successfully ---")
 
